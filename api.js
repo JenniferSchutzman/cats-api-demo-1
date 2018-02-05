@@ -15,7 +15,8 @@ const {
   last,
   split,
   filter,
-  toLower
+  toLower,
+  reject
 } = require('ramda')
 
 const cats = [
@@ -38,6 +39,17 @@ app.post('/cats', (req, res, next) => {
     res.send(append(catToAdd, cats))
   } else {
     // tell the client, where's the cat?
+    next(new HTTPError(400, 'Missing cat resource in request body.'))
+  }
+})
+
+app.put('/cats', (req, res, next) => {
+  const catToAdd = propOr({}, 'body', req)
+  if (not(isEmpty(catToAdd))) {
+    const deletedCat = cat => cat.name === catToAdd
+    const updatedCats = compose(append(catToAdd), reject(deletedCat))(cats)
+    res.send(updatedCats)
+  } else {
     next(new HTTPError(400, 'Missing cat resource in request body.'))
   }
 })
