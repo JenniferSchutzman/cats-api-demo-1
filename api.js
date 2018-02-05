@@ -4,7 +4,19 @@ const app = express()
 const HTTPError = require('node-http-error')
 const bodyParser = require('body-parser')
 const port = process.env.PORT || 5000
-const { pathOr, compose, head, last, split, filter, toLower } = require('ramda')
+const {
+  not,
+  isEmpty,
+  propOr,
+  append,
+  pathOr,
+  compose,
+  head,
+  last,
+  split,
+  filter,
+  toLower
+} = require('ramda')
 
 const cats = [
   { name: 'Mittens', age: 3, gender: 'Female', breed: 'Tabby' },
@@ -13,9 +25,23 @@ const cats = [
   { name: 'Miss Krunkles', age: 5, gender: 'Female', breed: 'Torty' }
 ]
 
+app.use(bodyParser.json())
+
 app.get('/', (req, res) => res.send('meow.'))
 
-//http://localhost:5000/cats?filter=breed:Tabby
+app.post('/cats', (req, res, next) => {
+  // req.body
+  const catToAdd = propOr({}, 'body', req)
+
+  if (not(isEmpty(catToAdd))) {
+    // add the cat to the cats array
+    res.send(append(catToAdd, cats))
+  } else {
+    // tell the client, where's the cat?
+    next(new HTTPError(400, 'Missing cat resource in request body.'))
+  }
+})
+
 app.get('/cats', (req, res) => {
   // req.query.filter
   const queryFilter = pathOr('no filter', ['query', 'filter'], req) // 'no filter' or 'breed:Tabby'
@@ -39,6 +65,19 @@ app.get('/cats', (req, res) => {
 
     res.send(filter(catFilter, cats))
   }
+})
+
+// recording / logging the error
+app.use((err, req, res, next) => {
+  console.log(req.method, req.path, err.status, ' error: ', err)
+  next(err)
+})
+
+// sends the error response object
+app.use((err, req, res, next) => {
+  res.status(err.status || 500)
+  res.send({ status: err.status || 500, message: err.message })
+  next(err)
 })
 
 app.listen(port, () => console.log('CATS! ', port))
