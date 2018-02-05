@@ -20,7 +20,7 @@ const {
   reject
 } = require('ramda')
 
-const cats = [
+var cats = [
   { name: 'Mittens', age: 3, gender: 'Female', breed: 'Tabby' },
   { name: 'Muffins', age: 2, gender: 'Male', breed: 'Siamese' },
   { name: 'Mr. Handsome', age: 8, gender: 'Male', breed: 'Tom' },
@@ -37,19 +37,22 @@ app.post('/cats', (req, res, next) => {
 
   if (not(isEmpty(catToAdd))) {
     // add the cat to the cats array
-    res.send(append(catToAdd, cats))
+
+    cats = append(catToAdd, cats)
+
+    res.send(cats)
   } else {
     // tell the client, where's the cat?
     next(new HTTPError(400, 'Missing cat resource in request body.'))
   }
 })
 
-app.put('/cats', (req, res, next) => {
+app.put('/cats/:name', (req, res, next) => {
   const catToAdd = propOr({}, 'body', req)
   if (not(isEmpty(catToAdd))) {
-    const deletedCat = cat => cat.name === catToAdd
-    const updatedCats = compose(append(catToAdd), reject(deletedCat))(cats)
-    res.send(updatedCats)
+    const deletedCat = cat => cat.name === catToAdd.name
+    cats = compose(append(catToAdd), reject(deletedCat))(cats)
+    res.send(cats)
   } else {
     next(new HTTPError(400, 'Missing cat resource in request body.'))
   }
@@ -60,6 +63,18 @@ app.get('/cats/:name', (req, res, next) => {
 
   if (foundCat) {
     res.send(foundCat)
+  } else {
+    next(new HTTPError(404, 'Cat Not Found'))
+  }
+})
+
+app.delete('/cats/:name', (req, res, next) => {
+  const foundCat = find(cat => cat.name === req.params.name, cats)
+  const deletedCat = cat => cat.name === foundCat.name
+
+  if (foundCat) {
+    cats = reject(deletedCat, cats)
+    res.send(cats)
   } else {
     next(new HTTPError(404, 'Cat Not Found'))
   }
