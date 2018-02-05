@@ -15,6 +15,7 @@ const {
   last,
   split,
   filter,
+  find,
   toLower,
   reject
 } = require('ramda')
@@ -51,6 +52,16 @@ app.put('/cats', (req, res, next) => {
     res.send(updatedCats)
   } else {
     next(new HTTPError(400, 'Missing cat resource in request body.'))
+  }
+})
+
+app.get('/cats/:name', (req, res, next) => {
+  const foundCat = find(cat => cat.name === req.params.name, cats)
+
+  if (foundCat) {
+    res.send(foundCat)
+  } else {
+    next(new HTTPError(404, 'Cat Not Found'))
   }
 })
 
